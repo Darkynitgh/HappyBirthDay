@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jardín Mágico para Linda</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #0a0e27 0%, #1a1a3e 50%, #2d1b3d 100%);
+            font-family: 'Georgia', serif;
+        }
+        
+        canvas {
+            display: block;
+        }
+        
+        .message {
+            position: absolute;
+            top: 25%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #fff;
+            text-align: center;
+            font-size: 4em;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8),
+                         0 0 40px rgba(255, 105, 180, 0.6);
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 1;
+        }
+        
+        .message-sub {
+            font-size: 0.4em;
+            margin-top: 10px;
+            color: #ffd700;
+        }
+        
+        .flower-counter {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            padding: 6px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            font-weight: bold;
+            text-align: center;
+            border: 1px solid #ffd700;
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.4);
+            z-index: 1001;
+            display: none; /* Oculto inicialmente */
+        }
+        
+        .counter-label {
+            font-size: 0.6em;
+            color: #ffd700;
+            margin-bottom: 3px;
+        }
+        
+        .counter-number {
+            font-size: 1.2em;
+            color: #fff;
+        }
+        
+        /* Media queries para diseño responsivo */
+        @media (max-width: 768px) {
+            .message {
+                font-size: 2.5em;
+                top: 20%;
+            }
+            
+            .message-sub {
+                font-size: 0.5em;
+            }
+            
+            .flower-counter {
+                top: 15px;
+                right: 15px;
+                padding: 5px 8px;
+                font-size: 0.8em;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .message {
+                font-size: 2em;
+                top: 15%;
+                padding: 0 20px;
+            }
+            
+            .message-sub {
+                font-size: 0.6em;
+            }
+            
+            .flower-counter {
+                top: 10px;
+                right: 10px;
+                padding: 4px 6px;
+                font-size: 0.7em;
+            }
+        }
+        
+        @media (max-width: 320px) {
+            .message {
+                font-size: 1.5em;
+                top: 12%;
+            }
+            
+            .message-sub {
+                font-size: 0.7em;
+            }
+            
+            .flower-counter {
+                top: 8px;
+                right: 8px;
+                padding: 3px 5px;
+                font-size: 0.6em;
+            }
+        }
+        
+        /* Para pantallas muy grandes */
+        @media (min-width: 1920px) {
+            .message {
+                font-size: 5em;
+            }
+            
+            .message-sub {
+                font-size: 0.3em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gardenCanvas"></canvas>
+    <div class="message">
+        ¡Feliz Cumpleaños Linda! 🌸
+        <div class="message-sub">Con cariño en tu día especial</div>
+    </div>
+    
+    <div class="flower-counter">
+        <div class="counter-label">Flores restantes</div>
+        <div class="counter-number" id="flowerCount">12</div>
+    </div>
+    
+    <script>
+        const canvas = document.getElementById('gardenCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            
+            // Resetear posición del caracol con aleatoriedad
+            snail.x = Math.random() > 0.5 ? 0 : canvas.width;
+            snail.y = canvas.height * 0.9;
+            snail.direction = snail.x === 0 ? 1 : -1;
+            
+            // Recalcular posiciones de flores principales
+            flowers.forEach(flower => {
+                if (flower.isMainFlower) {
+                    const margin = 60;
+                    flower.x = Math.max(margin, Math.min(canvas.width - margin, flower.x));
+                }
+            });
+        });
+        
+        // Estrellas
+        const stars = [];
+        for (let i = 0; i < 150; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height * 0.6,
+                radius: Math.random() * 1.5,
+                twinkle: Math.random() * Math.PI * 2
+            });
+        }
+        
+        // Luciérnagas mejoradas
+        class Firefly {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height * 0.7 + canvas.height * 0.2;
+                this.vx = (Math.random() - 0.5) * 0.8;
+                this.vy = (Math.random() - 0.5) * 0.8;
+                this.radius = Math.random() * 3 + 2;
+                this.brightness = Math.random();
+                this.brightnessSpeed = Math.random() * 0.03 + 0.02;
+                this.color = Math.random() > 0.5 ? 
+                    { r: 255, g: 255, b: 150 } : 
+                    { r: 255, g: 200, b: 255 };
+                this.trail = [];
+            }
+            
+            update() {
+                this.trail.push({ x: this.x, y: this.y, alpha: 0.5 });
+                if (this.trail.length > 15) this.trail.shift();
+                
+                this.x += this.vx;
+                this.y += this.vy;
+                
+                if (this.x < 0 || this.x > canvas.width) this.vx *= -1;
+                if (this.y < canvas.height * 0.2 || this.y > canvas.height * 0.9) this.vy *= -1;
+                
+                this.brightness += this.brightnessSpeed;
+                if (this.brightness > 1 || this.brightness < 0) {
+                    this.brightnessSpeed *= -1;
+                }
+            }
+            
+            draw() {
+                // Dibujar estela
+                this.trail.forEach((point, index) => {
+                    const alpha = (index / this.trail.length) * point.alpha * this.brightness;
+                    const gradient = ctx.createRadialGradient(point.x, point.y, 0, point.x, point.y, this.radius * 2);
+                    gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${alpha * 0.4})`);
+                    gradient.addColorStop(1, 'rgba(255, 255, 100, 0)');
+                    
+                    ctx.fillStyle = gradient;
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, this.radius * 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                
+                // Luciérnaga principal
+                const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius * 4);
+                gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.brightness})`);
+                gradient.addColorStop(0.3, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.brightness * 0.6})`);
+                gradient.addColorStop(1, 'rgba(255, 255, 100, 0)');
+                
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius * 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+        const fireflies = [];
+        for (let i = 0; i < 40; i++) {
+            fireflies.push(new Firefly());
+        }
+        
+        // Partículas mágicas
+        class MagicParticle {
+            constructor() {
+                this.reset();
+            }
+            
+            reset() {
+                this.x = canvas.width / 2 + (Math.random() - 0.5) * 300;
+                this.y = canvas.height * 0.75 + (Math.random() - 0.5) * 200;
+                this.vx = (Math.random() - 0.5) * 2;
+                this.vy = -Math.random() * 3 - 1;
+                this.life = 1;
+                this.decay = Math.random() * 0.01 + 0.005;
+                this.size = Math.random() * 3 + 1.5;
+                this.color = Math.random() > 0.5 ? 
+                    { r: 255, g: 150, b: 200 } : 
+                    { r: 200, g: 150, b: 255 };
+                this.rotation = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.1;
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += 0.05;
+                this.life -= this.decay;
+                this.rotation += this.rotationSpeed;
+                
+                if (this.life <= 0) {
+                    this.reset();
+                }
+            }
+            
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.life;
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.rotation);
+                
+                // Partícula con forma de estrella
+                ctx.fillStyle = `rgb(${this.color.r}, ${this.color.g}, ${this.color.b})`;
+                ctx.beginPath();
+                for (let i = 0; i < 5; i++) {
+                    const angle = (Math.PI * 2 / 5) * i - Math.PI / 2;
+                    const x = Math.cos(angle) * this.size;
+                    const y = Math.sin(angle) * this.size;
+                    if (i === 0) {
+                        ctx.moveTo(x, y);
+                    } else {
+                        ctx.lineTo(x, y);
+                    }
+                    
+                    const angleInner = (Math.PI * 2 / 5) * i + Math.PI / 5 - Math.PI / 2;
+                    const xInner = Math.cos(angleInner) * this.size * 0.5;
+                    const yInner = Math.sin(angleInner) * this.size * 0.5;
+                    ctx.lineTo(xInner, yInner);
+                }
+                ctx.closePath();
+                ctx.fill();
+                
+                // Brillo
+                const gradient = ctx.createRadialGradient(0, 0, 0, 0, 0, this.size * 2);
+                gradient.addColorStop(0, `rgba(${this.color.r}, ${this.color.g}, ${this.color.b}, ${this.life * 0.3})`);
+                gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(0, 0, this.size * 2, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.restore();
+            }
+        }
+        
+        const particles = [];
+        for (let i = 0; i < 30; i++) {
+            particles.push(new MagicParticle());
+        }
+        
+        // Flores
+        class Flower {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.swayOffset = Math.random() * Math.PI * 2;
+                this.swaySpeed = Math.random() * 0.02 + 0.01;
+                this.scale = Math.random() * 0.4 + 0.8;
+                this.color = this.getRandomColor(); // Color fijo para evitar parpadeo
+                this.visible = true; // Para el easter egg
+                this.isMainFlower = false; // Identificar flores principales
+            }
+            
+            getRandomColor() {
+                const colorSets = {
+                    'rose': ['#e91e63', '#c2185b', '#ad1457', '#880e4f'],
+                    'tulip': ['#7b1fa2', '#6a1b9a', '#4a148c', '#e1bee7', '#9c27b0', '#673ab7', '#3f51b5', '#ff4081', '#e91e63', '#f06292'],
+                    'daisy': ['#ffffff'],
+                    'wildflower': ['#ff5722', '#ff9800', '#ffc107', '#e91e63']
+                };
+                const colors = colorSets[this.type] || colorSets['wildflower'];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            draw(time) {
+                if (!this.visible) return; // No dibujar si no es visible
+                
+                const sway = Math.sin(time * this.swaySpeed + this.swayOffset) * 3;
+                
+                ctx.save();
+                ctx.translate(this.x + sway, this.y);
+                ctx.scale(this.scale, this.scale);
+                
+                // Tallo
+                ctx.strokeStyle = '#2d5016';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.quadraticCurveTo(sway * 2, -30, sway, -60);
+                ctx.stroke();
+                
+                // Hojas
+                ctx.fillStyle = '#3d7019';
+                ctx.beginPath();
+                ctx.ellipse(sway - 10, -30, 8, 15, Math.PI / 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.ellipse(sway + 10, -40, 8, 15, -Math.PI / 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                ctx.translate(sway, -60);
+                
+                if (this.type === 'rose') {
+                    this.drawRose();
+                } else if (this.type === 'tulip') {
+                    this.drawTulip();
+                } else if (this.type === 'daisy') {
+                    this.drawDaisy();
+                } else {
+                    this.drawWildflower();
+                }
+                
+                ctx.restore();
+            }
+            
+            drawRose() {
+                const color = this.color;
+                
+                // Pétalos externos
+                for (let i = 0; i < 6; i++) {
+                    ctx.save();
+                    ctx.rotate((Math.PI * 2 / 6) * i);
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.ellipse(0, -12, 10, 15, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+                
+                // Pétalos internos
+                for (let i = 0; i < 5; i++) {
+                    ctx.save();
+                    ctx.rotate((Math.PI * 2 / 5) * i + 0.3);
+                    ctx.fillStyle = this.lightenColor(color, 10);
+                    ctx.beginPath();
+                    ctx.ellipse(0, -8, 7, 10, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+                
+                // Centro
+                ctx.fillStyle = '#ffd700';
+                ctx.beginPath();
+                ctx.arc(0, 0, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            drawTulip() {
+                const color = this.color;
+                
+                // Pétalos
+                for (let i = 0; i < 6; i++) {
+                    ctx.save();
+                    ctx.rotate((Math.PI * 2 / 6) * i);
+                    ctx.fillStyle = i % 2 === 0 ? color : this.lightenColor(color, 8);
+                    ctx.beginPath();
+                    ctx.ellipse(0, -10, 8, 18, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+                
+                // Centro
+                ctx.fillStyle = '#2d2d2d';
+                ctx.beginPath();
+                ctx.arc(0, 0, 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            drawDaisy() {
+                // Pétalos blancos
+                ctx.fillStyle = '#fff';
+                for (let i = 0; i < 12; i++) {
+                    ctx.save();
+                    ctx.rotate((Math.PI * 2 / 12) * i);
+                    ctx.beginPath();
+                    ctx.ellipse(0, -12, 5, 12, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+                
+                // Centro amarillo simple (sin círculos brillantes)
+                ctx.fillStyle = '#ffd700';
+                ctx.beginPath();
+                ctx.arc(0, 0, 6, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            drawWildflower() {
+                const color = this.color;
+                
+                // Pétalos simples
+                ctx.fillStyle = color;
+                for (let i = 0; i < 5; i++) {
+                    ctx.save();
+                    ctx.rotate((Math.PI * 2 / 5) * i);
+                    ctx.beginPath();
+                    ctx.arc(0, -10, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                }
+                
+                // Centro
+                ctx.fillStyle = '#8b4513';
+                ctx.beginPath();
+                ctx.arc(0, 0, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            lightenColor(color, percent) {
+                const num = parseInt(color.replace('#', ''), 16);
+                const amt = Math.round(2.55 * percent);
+                const R = Math.min(255, (num >> 16) + amt);
+                const G = Math.min(255, (num >> 8 & 0x00FF) + amt);
+                const B = Math.min(255, (num & 0x0000FF) + amt);
+                return '#' + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+            }
+        }
+        
+        // Crear ramo de flores grandes en el centro
+        const flowers = [];
+        const flowerTypes = ['tulip', 'tulip', 'tulip', 'rose', 'daisy', 'wildflower']; // Más tulipanes
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height * 0.75;
+        
+        // Variables para el easter egg
+        let flowersToDisappear = 0;
+        let catVisible = false;
+        let counterVisible = false;
+        
+        // Flores del ramo (más grandes y centradas) - separadas en el mismo nivel
+        for (let i = 0; i < 12; i++) {
+            const angle = (Math.PI * 2 / 12) * i;
+            // Radio más conservador
+            const radius = 60 + Math.random() * 80; 
+            const x = centerX + Math.cos(angle) * radius;
+            const y = centerY; // Todas en el mismo nivel
+            
+            // Asegurar que la flor esté dentro de los límites de la pantalla
+            const margin = 50; // Margen para que la flor esté completamente visible
+            const clampedX = Math.max(margin, Math.min(canvas.width - margin, x));
+            
+            const type = flowerTypes[Math.floor(Math.random() * flowerTypes.length)];
+            const flower = new Flower(clampedX, y, type);
+            flower.scale = Math.random() * 0.5 + 1.0; // Escala más conservadora
+            flower.isMainFlower = true; // Marcar como flor principal
+            flowers.push(flower);
+        }
+        
+        // Contar flores principales para el easter egg
+        flowersToDisappear = flowers.filter(f => f.isMainFlower).length;
+        
+        // Flores de fondo más pequeñas - mejor distribuidas
+        for (let i = 0; i < 20; i++) {
+            const x = Math.random() * canvas.width;
+            const y = canvas.height * 0.85 + Math.random() * 60 - 30;
+            const type = flowerTypes[Math.floor(Math.random() * flowerTypes.length)];
+            const flower = new Flower(x, y, type);
+            flower.scale = Math.random() * 0.3 + 0.4;
+            flowers.push(flower);
+        }
+        
+        // Tulipanes adicionales especiales
+        for (let i = 0; i < 6; i++) {
+            const x = Math.random() * canvas.width;
+            const y = canvas.height * 0.8 + Math.random() * 40 - 20;
+            const flower = new Flower(x, y, 'tulip');
+            flower.scale = Math.random() * 0.3 + 0.5; // Más pequeños
+            flowers.push(flower);
+        }
+        
+        // Ordenar flores por profundidad
+        flowers.sort((a, b) => a.y - b.y);
+        
+        // Caracol que se mueve de un lado a otro
+        class Snail {
+            constructor() {
+                // Posición inicial aleatoria
+                this.x = Math.random() > 0.5 ? 0 : canvas.width;
+                this.y = canvas.height * 0.9;
+                this.speed = 0.5;
+                this.direction = this.x === 0 ? 1 : -1; // Dirección basada en posición inicial
+                this.size = 20; // Concha más grande
+                this.trail = [];
+            }
+            
+            update() {
+                // Agregar posición actual al rastro
+                this.trail.push({ x: this.x, y: this.y, alpha: 1 });
+                if (this.trail.length > 20) this.trail.shift();
+                
+                // Mover el caracol
+                this.x += this.speed * this.direction;
+                
+                // Cambiar dirección cuando llega a los bordes
+                if (this.x <= 0) {
+                    this.direction = 1;
+                } else if (this.x >= canvas.width) {
+                    this.direction = -1;
+                }
+                
+                // Desvanecer el rastro
+                this.trail.forEach(point => {
+                    point.alpha *= 0.95;
+                });
+            }
+            
+            draw() {
+                // Dibujar rastro
+                this.trail.forEach((point, index) => {
+                    if (point.alpha > 0.1) {
+                        ctx.globalAlpha = point.alpha * 0.3;
+                        ctx.fillStyle = '#8B4513';
+                        ctx.beginPath();
+                        ctx.arc(point.x, point.y, this.size * 0.3, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                });
+                ctx.globalAlpha = 1;
+                
+                // Cuerpo del caracol
+                ctx.fillStyle = '#DEB887';
+                ctx.beginPath();
+                ctx.ellipse(this.x, this.y, this.size, this.size * 0.6, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Concha del caracol
+                ctx.fillStyle = '#8B4513';
+                ctx.beginPath();
+                ctx.arc(this.x + this.size * 0.3, this.y - this.size * 0.2, this.size * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Patrón de la concha
+                ctx.strokeStyle = '#654321';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(this.x + this.size * 0.3, this.y - this.size * 0.2, this.size * 0.3, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.arc(this.x + this.size * 0.3, this.y - this.size * 0.2, this.size * 0.2, 0, Math.PI * 2);
+                ctx.stroke();
+                
+                // Antenas (dirección basada en el movimiento)
+                ctx.strokeStyle = '#DEB887';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                
+                if (this.direction === 1) {
+                    // Mirando hacia la derecha
+                    ctx.moveTo(this.x + this.size * 0.8, this.y - this.size * 0.3);
+                    ctx.lineTo(this.x + this.size * 1.2, this.y - this.size * 0.6);
+                    ctx.moveTo(this.x + this.size * 0.6, this.y - this.size * 0.4);
+                    ctx.lineTo(this.x + this.size * 1.0, this.y - this.size * 0.7);
+                } else {
+                    // Mirando hacia la izquierda
+                    ctx.moveTo(this.x - this.size * 0.8, this.y - this.size * 0.3);
+                    ctx.lineTo(this.x - this.size * 1.2, this.y - this.size * 0.6);
+                    ctx.moveTo(this.x - this.size * 0.6, this.y - this.size * 0.4);
+                    ctx.lineTo(this.x - this.size * 1.0, this.y - this.size * 0.7);
+                }
+                ctx.stroke();
+                
+                // Ojos (dirección basada en el movimiento)
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                if (this.direction === 1) {
+                    // Ojos mirando hacia la derecha
+                    ctx.arc(this.x + this.size * 1.2, this.y - this.size * 0.6, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(this.x + this.size * 1.0, this.y - this.size * 0.7, 2, 0, Math.PI * 2);
+                } else {
+                    // Ojos mirando hacia la izquierda
+                    ctx.arc(this.x - this.size * 1.2, this.y - this.size * 0.6, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(this.x - this.size * 1.0, this.y - this.size * 0.7, 2, 0, Math.PI * 2);
+                }
+                ctx.fill();
+            }
+        }
+        
+        const snail = new Snail();
+        
+        // Clase del gatito para el easter egg
+        class Cat {
+            constructor() {
+                this.x = canvas.width / 2;
+                this.y = canvas.height * 0.6;
+                this.size = 30; // Más pequeño
+                this.visible = false;
+                this.animationTime = 0;
+            }
+            
+            update() {
+                if (this.visible) {
+                    this.animationTime += 0.08;
+                }
+            }
+            
+            draw() {
+                if (!this.visible) return;
+                
+                const bounce = Math.sin(this.animationTime) * 4;
+                const tailWag = Math.sin(this.animationTime * 1.5) * 15;
+                
+                ctx.save();
+                ctx.translate(this.x, this.y + bounce);
+                
+                // Sombra del gato
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                ctx.beginPath();
+                ctx.ellipse(0, this.size * 0.8, this.size * 0.8, this.size * 0.3, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Cuerpo del gato (más redondeado)
+                const gradient = ctx.createRadialGradient(0, -this.size * 0.3, 0, 0, 0, this.size);
+                gradient.addColorStop(0, '#FFD700');
+                gradient.addColorStop(0.7, '#FFA500');
+                gradient.addColorStop(1, '#FF8C00');
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.size, this.size * 0.8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Cabeza (más grande y redonda)
+                ctx.fillStyle = gradient;
+                ctx.beginPath();
+                ctx.arc(0, -this.size * 0.9, this.size * 0.7, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Orejas (más grandes y puntiagudas)
+                ctx.fillStyle = '#FF8C00';
+                ctx.beginPath();
+                ctx.moveTo(-this.size * 0.5, -this.size * 1.3);
+                ctx.lineTo(-this.size * 0.2, -this.size * 1.8);
+                ctx.lineTo(-this.size * 0.7, -this.size * 1.6);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.moveTo(this.size * 0.5, -this.size * 1.3);
+                ctx.lineTo(this.size * 0.2, -this.size * 1.8);
+                ctx.lineTo(this.size * 0.7, -this.size * 1.6);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Interior de las orejas
+                ctx.fillStyle = '#FFB6C1';
+                ctx.beginPath();
+                ctx.moveTo(-this.size * 0.4, -this.size * 1.4);
+                ctx.lineTo(-this.size * 0.3, -this.size * 1.6);
+                ctx.lineTo(-this.size * 0.5, -this.size * 1.5);
+                ctx.closePath();
+                ctx.fill();
+                
+                ctx.beginPath();
+                ctx.moveTo(this.size * 0.4, -this.size * 1.4);
+                ctx.lineTo(this.size * 0.3, -this.size * 1.6);
+                ctx.lineTo(this.size * 0.5, -this.size * 1.5);
+                ctx.closePath();
+                ctx.fill();
+                
+                // Ojos (más grandes y expresivos)
+                ctx.fillStyle = '#000';
+                ctx.beginPath();
+                ctx.arc(-this.size * 0.25, -this.size * 1.0, 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(this.size * 0.25, -this.size * 1.0, 4, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Reflejos en los ojos
+                ctx.fillStyle = '#FFF';
+                ctx.beginPath();
+                ctx.arc(-this.size * 0.2, -this.size * 1.05, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.beginPath();
+                ctx.arc(this.size * 0.3, -this.size * 1.05, 1.5, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Nariz (más grande)
+                ctx.fillStyle = '#FF69B4';
+                ctx.beginPath();
+                ctx.arc(0, -this.size * 0.8, 3, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Boca (más expresiva)
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(0, -this.size * 0.7, 10, 0, Math.PI);
+                ctx.stroke();
+                
+                // Bigotes
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                for (let i = 0; i < 3; i++) {
+                    ctx.beginPath();
+                    ctx.moveTo(-this.size * 0.4, -this.size * 0.9 + i * 3);
+                    ctx.lineTo(-this.size * 0.7, -this.size * 0.9 + i * 3);
+                    ctx.stroke();
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(this.size * 0.4, -this.size * 0.9 + i * 3);
+                    ctx.lineTo(this.size * 0.7, -this.size * 0.9 + i * 3);
+                    ctx.stroke();
+                }
+                
+                // Cola (más larga y con movimiento)
+                ctx.save();
+                ctx.translate(this.size * 0.9, this.size * 0.2);
+                ctx.rotate(tailWag * Math.PI / 180);
+                ctx.fillStyle = '#FF8C00';
+                ctx.beginPath();
+                ctx.ellipse(0, 0, this.size * 0.4, this.size * 0.15, 0, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+                
+                // Patas (más definidas)
+                ctx.fillStyle = '#FF8C00';
+                for (let i = 0; i < 4; i++) {
+                    const x = (i < 2 ? -1 : 1) * this.size * 0.35;
+                    const y = this.size * 0.5;
+                    ctx.beginPath();
+                    ctx.arc(x, y, this.size * 0.2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                
+                ctx.restore();
+            }
+        }
+        
+        const cat = new Cat();
+        
+        function drawGround(time) {
+            const gradient = ctx.createLinearGradient(0, canvas.height * 0.7, 0, canvas.height);
+            gradient.addColorStop(0, '#1a472a');
+            gradient.addColorStop(1, '#0d2818');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, canvas.height * 0.7, canvas.width, canvas.height * 0.3);
+            
+            // Actualizar y dibujar caracol
+            snail.update();
+            snail.draw();
+        }
+        
+        // Animación
+        let time = 0;
+        function animate() {
+            time += 0.016;
+            
+            // Limpiar canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Dibujar estrellas
+            stars.forEach(star => {
+                star.twinkle += 0.03;
+                const brightness = (Math.sin(star.twinkle) + 1) / 2;
+                ctx.fillStyle = `rgba(255, 255, 255, ${brightness * 0.8})`;
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            
+            // Dibujar suelo
+            drawGround(time);
+            
+            // Dibujar flores
+            flowers.forEach(flower => flower.draw(time));
+            
+            // Actualizar y dibujar partículas mágicas
+            particles.forEach(particle => {
+                particle.update();
+                particle.draw();
+            });
+            
+            // Actualizar y dibujar luciérnagas
+            fireflies.forEach(firefly => {
+                firefly.update();
+                firefly.draw();
+            });
+            
+            // Actualizar y dibujar gatito
+            cat.update();
+            cat.draw();
+            
+            requestAnimationFrame(animate);
+        }
+        
+        // Función para actualizar el contador
+        function updateCounter() {
+            const counterElement = document.getElementById('flowerCount');
+            const counterContainer = document.querySelector('.flower-counter');
+            
+            counterElement.textContent = flowersToDisappear;
+            
+            // Mostrar el contador si no está visible
+            if (!counterVisible) {
+                counterContainer.style.display = 'block';
+                counterVisible = true;
+            }
+        }
+        
+        // Función para detectar tap en flores
+        function handleTap(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            // Buscar flores principales cerca del tap
+            flowers.forEach(flower => {
+                if (flower.visible && flower.isMainFlower) {
+                    // Calcular distancia considerando la posición de la flor (no el tallo)
+                    const flowerX = flower.x;
+                    const flowerY = flower.y - 60; // Posición de la flor (arriba del tallo)
+                    const distance = Math.sqrt((x - flowerX) ** 2 + (y - flowerY) ** 2);
+                    
+                    // Radio de detección más grande y centrado en la flor
+                    if (distance < 100) { // Radio aún más grande para facilitar el tap
+                        flower.visible = false;
+                        flowersToDisappear--;
+                        
+                        // Actualizar el contador
+                        updateCounter();
+                        
+                        // Verificar si todas las flores principales han desaparecido
+                        if (flowersToDisappear === 0) {
+                            cat.visible = true;
+                        }
+                        
+                        // Debug: mostrar en consola cuántas flores quedan
+                        console.log(`Flores restantes: ${flowersToDisappear}`);
+                    }
+                }
+            });
+        }
+        
+        // Agregar event listeners para tap
+        canvas.addEventListener('click', handleTap);
+        canvas.addEventListener('touchstart', handleTap);
+        
+        animate();
+    </script>
+</body>
+</html>
