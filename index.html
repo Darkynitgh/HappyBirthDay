@@ -884,8 +884,8 @@
             const x = event.clientX - rect.left;
             const y = event.clientY - rect.top;
             
-            // Buscar flores principales cerca del tap
-            flowers.forEach(flower => {
+            // Buscar la primera flor principal cerca del tap
+            for (let flower of flowers) {
                 if (flower.visible && flower.isMainFlower) {
                     // Calcular distancia considerando la posición de la flor (no el tallo)
                     const flowerX = flower.x;
@@ -900,21 +900,186 @@
                         // Actualizar el contador
                         updateCounter();
                         
-                        // Verificar si todas las flores principales han desaparecido
-                        if (flowersToDisappear === 0) {
-                            cat.visible = true;
-                        }
+        // Verificar si todas las flores principales han desaparecido
+        if (flowersToDisappear === 0) {
+            // Mostrar mensaje del gatito
+            showCatMessage();
+        }
                         
                         // Debug: mostrar en consola cuántas flores quedan
                         console.log(`Flores restantes: ${flowersToDisappear}`);
+                        
+                        // Salir del bucle después de eliminar una flor
+                        break;
                     }
                 }
-            });
+            }
+        }
+        
+        // Función para detectar tap en el gatito
+        function handleCatTap(event) {
+            const rect = canvas.getBoundingClientRect();
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+            
+            if (cat.visible) {
+                // Calcular distancia al gatito
+                const distance = Math.sqrt((x - cat.x) ** 2 + (y - cat.y) ** 2);
+                
+                // Radio de detección para el gatito
+                if (distance < 50) {
+                    // Navegar a flower.html
+                    window.location.href = 'flower.html';
+                }
+            }
         }
         
         // Agregar event listeners para tap
-        canvas.addEventListener('click', handleTap);
-        canvas.addEventListener('touchstart', handleTap);
+        canvas.addEventListener('click', (event) => {
+            if (cat.visible) {
+                handleCatTap(event);
+            } else {
+                handleTap(event);
+            }
+        });
+        canvas.addEventListener('touchstart', (event) => {
+            if (cat.visible) {
+                handleCatTap(event);
+            } else {
+                handleTap(event);
+            }
+        });
+        
+        // Función para mostrar el mensaje del gatito
+        function showCatMessage() {
+            // Crear el elemento del mensaje
+            const catMessage = document.createElement('div');
+            catMessage.className = 'cat-message';
+            catMessage.innerHTML = `
+                <div class="cat-icon">🐱</div>
+                <div class="cat-text">¡Tócame!</div>
+            `;
+            
+            // Agregar funcionalidad de click
+            catMessage.addEventListener('click', () => {
+                window.location.href = 'flower.html';
+            });
+            
+            // Agregar funcionalidad para dispositivos táctiles
+            catMessage.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                window.location.href = 'flower.html';
+            });
+            
+            // Agregar estilos
+            const style = document.createElement('style');
+            style.textContent = `
+                .cat-message {
+                    position: fixed;
+                    top: 50%;
+                    left: 29%;
+                    transform: translate(-50%, -50%);
+                    background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
+                    border: 3px solid #fff;
+                    border-radius: 20px;
+                    padding: 15px 20px;
+                    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+                    z-index: 1000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 10px;
+                    animation: catBounce 2s ease-in-out infinite;
+                    cursor: pointer;
+                    transition: all 0.3s ease;
+                    min-width: 200px;
+                    text-align: center;
+                }
+                
+                .cat-message:hover {
+                    transform: scale(1.05);
+                    box-shadow: 0 12px 35px rgba(0, 0, 0, 0.4);
+                }
+                
+                .cat-icon {
+                    font-size: 24px;
+                    animation: catWiggle 1.5s ease-in-out infinite;
+                }
+                
+                .cat-text {
+                    color: #fff;
+                    font-weight: bold;
+                    font-size: 16px;
+                    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+                    font-family: 'Arial', sans-serif;
+                }
+                
+                @keyframes catBounce {
+                    0%, 100% {
+                        transform: translateY(0);
+                    }
+                    50% {
+                        transform: translateY(-5px);
+                    }
+                }
+                
+                @keyframes catWiggle {
+                    0%, 100% {
+                        transform: rotate(0deg);
+                    }
+                    25% {
+                        transform: rotate(-10deg);
+                    }
+                    75% {
+                        transform: rotate(10deg);
+                    }
+                }
+                
+                /* Responsive para móviles */
+                @media (max-width: 768px) {
+                    .cat-message {
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        padding: 12px 16px;
+                        border-radius: 15px;
+                        min-width: 180px;
+                    }
+                    
+                    .cat-icon {
+                        font-size: 20px;
+                    }
+                    
+                    .cat-text {
+                        font-size: 14px;
+                    }
+                }
+                
+                @media (max-width: 480px) {
+                    .cat-message {
+                        position: fixed;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        padding: 10px 14px;
+                        border-radius: 12px;
+                        min-width: 160px;
+                    }
+                    
+                    .cat-icon {
+                        font-size: 18px;
+                    }
+                    
+                    .cat-text {
+                        font-size: 12px;
+                    }
+                }
+            `;
+            
+            document.head.appendChild(style);
+            document.body.appendChild(catMessage);
+        }
         
         animate();
     </script>
